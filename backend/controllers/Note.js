@@ -1,100 +1,103 @@
-const express = require('express')
-const Note = require('../models/Note')
+const express = require("express");
+const Note = require("../models/Note");
 
-exports.allNotes = async(req, res) => {
-    try{
-        const notes = await Note.find({userId: req.user._id})
-        return res.json({
-            notes
-        })
-    }catch(error){
-        console.log(error)
-        return res.status(500).json({
-            message: "Server Error"
-        })
+exports.allNotes = async (req, res) => {
+  try {
+    const notes = await Note.find({ userId: req.user._id });
+    return res.json({
+      notes,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
+exports.createNote = async (req, res) => {
+  const { content } = req.body;
+  try {
+    const newNote = await Note.create({
+      content,
+      userId: req.user._id,
+    });
+
+    return res.json({
+      message: "Note created successfully",
+      note: newNote,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
+exports.editNote = async (req, res) => {
+  const noteId = req.params.id;
+  const { content } = req.body;
+
+  try {
+    let note = await Note.findById(noteId);
+
+    if (!note) {
+      return res.status(404).json({
+        message: "Note not found",
+      });
     }
-}
 
-exports.createNote = async(req, res) => {
-    const {content} = req.body
-    try{
-        const newNote = await Note.create({
-            content,
-            userId: req.user._id
-        })
-
-        return res.json({
-            message: "Note created successfully",
-            note: newNote
-        })
-    }catch(error){
-        console.log(error)
-        return res.status(500).json({
-            message: "Server Error"
-        })
+    if (note.userId.toString() !== req.user._id.toString()) {
+      return res.status(404).json({
+        message: "Unauthorized",
+      });
     }
-}
 
-exports.editNote = async(req, res) => {
-    const noteId = req.params.id
-    const {content} = req.body
+    let updatedNote = await Note.findByIdAndUpdate(
+      noteId,
+      { content: content },
+      { new: true }
+    );
 
-    try{
-        let note = await Note.findById(noteId)
+    res.json({
+      message: "Note updated successfully",
+      updatedNote,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
 
-        if(!note){
-            return res.status(404).json({
-                message: "Note not found"
-            })
-        }
+exports.deleteNote = async (req, res) => {
+  let noteId = req.params.id;
 
-        if(note.userId.toString() !== req.user._id.toString()){
-            return res.status(404).json({
-                message: "Unauthorized"
-            })
-        }
+  try {
+    const deletedNote = await Note.findById(noteId);
 
-       let updatedNote = await Note.findByIdAndUpdate(noteId, {content: content}, {new: true})
-
-       res.json({
-        message: "Note updated successfully",
-        updatedNote
-    })
-    }catch(error){
-        console.log(error)
-        return res.status(500).json({
-            message: "Server Error"
-        })
+    if (!deletedNote) {
+      return res.status(404).json({
+        message: "Note not found",
+      });
     }
-}
 
-exports.deleteNote = async(req, res) => {
-    let noteId = req.params.id
-
-    try{
-        const deletedNote = await Note.findById(noteId)
-
-        if(!deletedNote){ 
-            return res.status(404).json({
-                message: 'Note not found'
-            })
-        }
-
-        if(deletedNote.userId.toString() !== req.user._id.toString()){
-            return res.status(404).json({
-                message: "Unauthorized"
-            })
-        }
-
-        await Note.deleteOne(deletedNote)
-        return res.json({
-            message: "Note deleted successfully"
-        })
-
-    }catch(error){
-        console.log(error)
-        return res.status(500).json({
-            message: "Server Error"
-        })  
+    if (deletedNote.userId.toString() !== req.user._id.toString()) {
+      return res.status(404).json({
+        message: "Unauthorized",
+      });
     }
-}
+
+    await Note.deleteOne(deletedNote);
+    return res.json({
+      message: "Note deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
